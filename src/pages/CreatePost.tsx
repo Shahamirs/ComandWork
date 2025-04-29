@@ -22,13 +22,32 @@ export default function CreatePost() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    axiosApi.get('/categories/').then((res) => setCategories(res.data));
-  }, []);
+    // Проверка авторизации
+    const accessToken = localStorage.getItem('accessToken');
+    if (!accessToken) {
+      navigate('/login');
+    }
+
+    // Получение категорий
+    axiosApi
+      .get('/categories/')
+      .then((res) => setCategories(res.data))
+      .catch((error) => console.error('Ошибка получения категорий:', error));
+  }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await axiosApi.post('/posts/', { title, content, category });
-    navigate('/');
+    try {
+      await axiosApi.post('/posts/', { title, content, category_id: category });
+      navigate('/');
+    } catch (error) {
+      console.error('Ошибка при создании поста:', error.response?.data || error.message);
+      if (error.response?.status === 401) {
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        navigate('/login');
+      }
+    }
   };
 
   return (
